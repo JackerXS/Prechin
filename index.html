@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💣 炸弹探测大师 🎮</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px #ff6b6b, 0 0 20px #ff6b6b, 0 0 40px #ff6b6b;
+        }
+        
+        .glow-green {
+            text-shadow: 0 0 10px #4ecdc4, 0 0 20px #4ecdc4;
+        }
+        
+        .game-btn {
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .game-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .game-btn:hover {
+            transform: scale(1.05) rotate(2deg);
+            box-shadow: 0 0 30px rgba(255,107,107,0.5);
+        }
+        
+        .game-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .explosion {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .explosion-particle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6b6b, #ff4757);
+            border-radius: 50%;
+            animation: explode 0.8s ease-out forwards;
+        }
+        
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+        
+        .wave-effect {
+            position: absolute;
+            border: 3px solid #4ecdc4;
+            border-radius: 50%;
+            animation: wave 1s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes wave {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+            }
+        }
+        
+        .safe-flash {
+            animation: safeFlash 0.5s ease-out;
+        }
+        
+        @keyframes safeFlash {
+            0%, 100% { background: #2d3748; }
+            50% { background: #48bb78; }
+        }
+        
+        .item-float {
+            animation: float 2s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        
+        .bounce {
+            animation: bounce 0.6s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        
+        .reveal-anim {
+            animation: reveal 0.8s ease-out;
+        }
+        
+        @keyframes reveal {
+            0% {
+                opacity: 0;
+                transform: rotateY(90deg);
+            }
+            100% {
+                opacity: 1;
+                transform: rotateY(0);
+            }
+        }
+        
+        .powerup-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .powerup-item:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .powerup-item.used {
+            opacity: 0.3;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        
+        .combo-popup {
+            animation: comboPopup 1s ease-out forwards;
+        }
+        
+        @keyframes comboPopup {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5);
+            }
+            100% {
+                transform: scale(2) translateY(-50px);
+                opacity: 0;
+            }
+        }
+        
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #4ecdc4, transparent);
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        
+        .mystery-box {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.7); }
+            50% { box-shadow: 0 0 0 20px rgba(255,215,0,0); }
+        }
+        
+        .win-firework {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: firework 1s ease-out forwards;
+        }
+        
+        @keyframes firework {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--fx), var(--fy)) scale(0.1);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="grid-bg">
+    <div class="scan-line"></div>
+    
+    <div class="container mx-auto px-4 py-8 relative z-10">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl md:text-6xl font-black glow-text text-white mb-4 item-float">
+                💣 炸弹探测大师 🎮
+            </h1>
+            <p class="text-gray-400 text-lg">找到安全的按钮，避开隐藏的炸弹！</p>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-4 mb-6">
+            <div class="bg-gray-800/80 backdrop-blur rounded-xl px-6 py-3 border border-gray-700">
+                <span class="text-gray-400">生命值:</span>
+                <span id="lives" class="text-red-400 text-2xl font-bold ml-2">❤️❤️❤️</span>
+            </div>
+            <div class="bg-gray-800/80 backdrop-blur rounded-xl px-6 py-3 border border-gray-700">
+                <span class="text-gray-400">得分:</span>
+                <span id="score" class="text-yellow-400 text-2xl font-bold ml-2">0</span>
+            </div>
+            <div class="bg-gray-800/80 backdrop-blur rounded-xl px-6 py-3 border border-gray-700">
+                <span class="text-gray-400">连击:</span>
+                <span id="combo" class="text-green-400 text-2xl font-bold ml-2">0</span>
+            </div>
+            <div class="bg-gray-800/80 backdrop-blur rounded-xl px-6 py-3 border border-gray-700">
+                <span class="text-gray-400">关卡:</span>
+                <span id="level" class="text-cyan-400 text-2xl font-bold ml-2">1</span>
+            </div>
+        </div>
+        
+        <div class="max-w-md mx-auto mb-6">
+            <div class="bg-gray-800 rounded-full h-4 overflow-hidden border border-gray-700">
+                <div id="progress" class="progress-bar bg-gradient-to-r from-red-500 to-orange-500 h-full" style="width: 0%"></div>
+            </div>
+            <div class="text-center text-gray-400 mt-2">
+                安全按钮: <span id="safeCount">0</span> / <span id="totalCount">0</span>
+            </div>
+        </div>
+        
+        <div class="max-w-4xl mx-auto mb-6">
+            <h2 class="text-2xl font-bold text-cyan-400 text-center mb-4">🎁 神秘道具箱</h2>
+            <div class="flex flex-wrap justify-center gap-4" id="powerups">
+                <div class="powerup-item bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl p-4 shadow-lg" data-item="radar" title="探测器 - 显示一定范围内是否有炸弹">
+                    <div class="text-4xl text-center">📡</div>
+                    <div class="text-white text-sm font-bold text-center mt-2">探测器</div>
+                    <div class="text-gray-200 text-xs text-center">显示附近炸弹</div>
+                    <div class="text-yellow-300 text-xs text-center mt-1" id="radar-count">×3</div>
+                </div>
+                <div class="powerup-item bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-4 shadow-lg" data-item="reveal" title="透视眼 - 揭示3个安全按钮">
+                    <div class="text-4xl text-center">👁️</div>
+                    <div class="text-white text-sm font-bold text-center mt-2">透视眼</div>
+                    <div class="text-gray-200 text-xs text-center">揭示3个安全</div>
+                    <div class="text-cyan-300 text-xs text-center mt-1" id="reveal-count">×2</div>
+                </div>
+                <div class="powerup-item bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-4 shadow-lg" data-item="defuse" title="拆弹器 - 消除所有错误答案的标记">
+                    <div class="text-4xl text-center">🔧</div>
+                    <div class="text-white text-sm font-bold text-center mt-2">拆弹器</div>
+                    <div class="text-gray-200 text-xs text-center">清除错误标记</div>
+                    <div class="text-pink-300 text-xs text-center mt-1" id="defuse-count">×2</div>
+                </div>
+                <div class="powerup-item bg-gradient-to-br from-green-500 to-lime-500 rounded-xl p-4 shadow-lg" data-item="shield" title="护盾 - 下一次失误不减少生命">
+                    <div class="text-4xl text-center">🛡️</div>
+                    <div class="text-white text-sm font-bold text-center mt-2">护盾</div>
+                    <div class="text-gray-200 text-xs text-center">保护一次失误</div>
+                    <div class="text-lime-300 text-xs text-center mt-1" id="shield-count">×1</div>
+                </div>
+                <div class="powerup-item bg-gradient-to-br from-red-500 to-yellow-500 rounded-xl p-4 shadow-lg mystery-box" data-item="mystery" title="神秘礼盒 - 随机效果！">
+                    <div class="text-4xl text-center">🎁</div>
+                    <div class="text-white text-sm font-bold text-center mt-2">神秘礼盒</div>
+                    <div class="text-gray-200 text-xs text-center">随机好效果</div>
+                    <div class="text-red-300 text-xs text-center mt-1" id="mystery-count">×1</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="max-w-3xl mx-auto mb-6">
+            <div id="gameGrid" class="grid grid-cols-5 md:grid-cols-8 gap-3 md:gap-4">
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-4 mb-6">
+            <button onclick="startGame()" class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all">
+                🎮 开始新游戏
+            </button>
+            <button onclick="resetPowerups()" class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all">
+                🔄 重置道具
+            </button>
+            <button onclick="toggleSound()" id="soundBtn" class="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all">
+                🔊 音效: 开
+            </button>
+        </div>
+        
+        <div id="message" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-5xl font-black text-white text-center pointer-events-none opacity-0 transition-opacity z-50">
+        </div>
+        
+        <div class="max-w-2xl mx-auto bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700">
+            <h3 class="text-xl font-bold text-yellow-400 mb-4">📖 游戏规则</h3>
+            <ul class="text-gray-300 space-y-2">
+                <li>🎯 <strong>目标:</strong> 点击所有安全的按钮避开炸弹</li>
+                <li>💣 <strong>炸弹:</strong> 只有一个隐藏的炸弹，点击即爆炸！</li>
+                <li>✅ <strong>安全:</strong> 点击安全按钮可获得分数</li>
+                <li>📡 <strong>探测器:</strong> 显示周围3格内是否有炸弹</li>
+                <li>👁️ <strong>透视眼:</strong> 直接揭示3个安全按钮</li>
+                <li>🔧 <strong>拆弹器:</strong> 清除所有错误标记</li>
+                <li>🛡️ <strong>护盾:</strong> 抵挡一次炸弹伤害</li>
+                <li>🎁 <strong>神秘礼盒:</strong> 随机触发强力效果！</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        let gameState = {
+            lives: 3,
+            score: 0,
+            combo: 0,
+            level: 1,
+            bombIndex: -1,
+            clickedButtons: new Set(),
+            revealedButtons: new Set(),
+            wrongButtons: new Set(),
+            powerups: {
+                radar: 3,
+                reveal: 2,
+                defuse: 2,
+                shield: 1,
+                mystery: 1
+            },
+            selectedPowerup: null,
+            soundEnabled: true,
+            isGameOver: false
+        };
+
+        const gridSize = () => Math.min(40, 25 + gameState.level * 2);
+        const bombCount = () => Math.min(5, 1 + Math.floor(gameState.level / 2));
+
+        function createExplosion(x, y, isBig = false) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            
+            const particleCount = isBig ? 50 : 30;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'explosion-particle';
+                const angle = (i / particleCount) * Math.PI * 2;
+                const distance = isBig ? 200 + Math.random() * 100 : 100 + Math.random() * 50;
+                particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                particle.style.background = `radial-gradient(circle, hsl(${Math.random() * 60}, 100%, 50%), hsl(${Math.random() * 60}, 100%, 30%))`;
+                explosion.appendChild(particle);
+            }
+            
+            document.body.appendChild(explosion);
+            setTimeout(() => explosion.remove(), 1000);
+        }
+
+        function createWaveEffect(element) {
+            const wave = document.createElement('div');
+            wave.className = 'wave-effect';
+            const rect = element.getBoundingClientRect();
+            wave.style.left = (rect.left + rect.width / 2) + 'px';
+            wave.style.top = (rect.top + rect.height / 2) + 'px';
+            document.body.appendChild(wave);
+            setTimeout(() => wave.remove(), 1000);
+        }
+
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'click':
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                case 'bomb':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.5);
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+                case 'powerup':
+                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'win':
+                    [523, 659, 784, 1047].forEach((freq, i) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.1);
+                        gain.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.1);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.3);
+                        osc.start(audioContext.currentTime + i * 0.1);
+                        osc.stop(audioContext.currentTime + i * 0.1 + 0.3);
+                    });
+                    break;
+            }
+        }
+
+        function showMessage(text, color = 'white', duration = 1500) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.style.color = color;
+            msg.style.textShadow = `0 0 20px ${color}`;
+            msg.classList.add('combo-popup');
+            msg.style.opacity = '1';
+            
+            setTimeout(() => {
+                msg.style.opacity = '0';
+                msg.classList.remove('combo-popup');
+            }, duration);
+        }
+
+        function updateUI() {
+            document.getElementById('lives').textContent = '❤️'.repeat(gameState.lives);
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('combo').textContent = gameState.combo;
+            document.getElementById('level').textContent = gameState.level;
+            
+            Object.keys(gameState.powerups).forEach(item => {
+                const countEl = document.getElementById(`${item}-count`);
+                if (countEl) {
+                    countEl.textContent = `×${gameState.powerups[item]}`;
+                }
+            });
+            
+            const total = gridSize();
+            const safe = total - bombCount();
+            const revealed = gameState.revealedButtons.size;
+            const remaining = safe - revealed - 
+                [...gameState.clickedButtons].filter(i => !isBomb(i)).length;
+            document.getElementById('safeCount').textContent = safe - remaining - [...gameState.clickedButtons].filter(i => !isBomb(i)).length;
+            document.getElementById('totalCount').textContent = safe;
+            document.getElementById('progress').style.width = 
+                ((safe - remaining - [...gameState.clickedButtons].filter(i => !isBomb(i)).length) / safe * 100) + '%';
+        }
+
+        function isBomb(index) {
+            return gameState.bombIndices && gameState.bombIndices.includes(index);
+        }
+
+        function generateGame() {
+            const grid = document.getElementById('gameGrid');
+            grid.innerHTML = '';
+            
+            const size = gridSize();
+            grid.style.gridTemplateColumns = `repeat(${Math.ceil(Math.sqrt(size))}, 1fr)`;
+            
+            gameState.bombIndices = [];
+            const bombs = bombCount();
+            while (gameState.bombIndices.length < bombs) {
+                const idx = Math.floor(Math.random() * size);
+                if (!gameState.bombIndices.includes(idx)) {
+                    gameState.bombIndices.push(idx);
+                }
+            }
+            
+            for (let i = 0; i < size; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'game-btn bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-4 rounded-xl border-2 border-gray-600 hover:border-yellow-400 text-2xl';
+                btn.dataset.index = i;
+                btn.innerHTML = '❓';
+                btn.onclick = () => handleButtonClick(i, btn);
+                grid.appendChild(btn);
+            }
+            
+            gameState.clickedButtons.clear();
+            gameState.revealedButtons.clear();
+            gameState.wrongButtons.clear();
+            gameState.isGameOver = false;
+            gameState.selectedPowerup = null;
+            
+            document.querySelectorAll('.powerup-item').forEach(el => el.classList.remove('used'));
+            
+            updateUI();
+        }
+
+        function handleButtonClick(index, btn) {
+            if (gameState.isGameOver || gameState.clickedButtons.has(index) || gameState.revealedButtons.has(index)) return;
+            
+            playSound('click');
+            
+            if (isBomb(index)) {
+                if (gameState.powerups.shield > 0) {
+                    gameState.powerups.shield--;
+                    btn.innerHTML = '🛡️';
+                    btn.classList.add('reveal-anim');
+                    showMessage('🛡️ 护盾生效！', '#4ecdc4');
+                    playSound('powerup');
+                    updateUI();
+                    return;
+                }
+                
+                createExplosion(btn.getBoundingClientRect().left + 25, btn.getBoundingClientRect().top + 25, true);
+                playSound('bomb');
+                
+                btn.innerHTML = '💥';
+                btn.classList.add('shake');
+                btn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                btn.classList.add('bg-red-600', 'border-red-500');
+                
+                gameState.clickedButtons.add(index);
+                gameState.lives--;
+                gameState.combo = 0;
+                
+                showMessage('💥 炸弹爆炸！', '#ff4757');
+                
+                gameState.bombIndices.forEach(bombIdx => {
+                    const bombBtn = document.querySelector(`[data-index="${bombIdx}"]`);
+                    if (bombBtn && !gameState.clickedButtons.has(bombIdx)) {
+                        bombBtn.innerHTML = '💣';
+                        bombBtn.classList.add('reveal-anim');
+                    }
+                });
+                
+                updateUI();
+                
+                if (gameState.lives <= 0) {
+                    gameOver();
+                }
+            } else {
+                gameState.combo++;
+                const points = 10 * gameState.combo * gameState.level;
+                gameState.score += points;
+                
+                btn.innerHTML = '✅';
+                btn.classList.add('bounce', 'reveal-anim');
+                btn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                btn.classList.add('bg-green-600', 'border-green-500');
+                
+                createWaveEffect(btn);
+                gameState.clickedButtons.add(index);
+                
+                if (gameState.combo >= 5) {
+                    showMessage(`🔥 ${gameState.combo} 连击！+${points}`, '#ffd700', 2000);
+                } else if (gameState.combo >= 3) {
+                    showMessage(`⚡ ${gameState.combo} 连击！`, '#4ecdc4');
+                }
+                
+                updateUI();
+                checkWin();
+            }
+        }
+
+        function checkWin() {
+            const size = gridSize();
+            const bombs = bombCount();
+            const safeButtons = size - bombs;
+            const clickedSafe = [...gameState.clickedButtons].filter(i => !isBomb(i)).length;
+            
+            if (clickedSafe >= safeButtons) {
+                gameState.isGameOver = true;
+                playSound('win');
+                gameState.level++;
+                showMessage('🎉 关卡完成！', '#ffd700', 2000);
+                
+                createFireworks();
+                
+                setTimeout(() => {
+                    generateGame();
+                }, 2000);
+            }
+        }
+
+        function gameOver() {
+            gameState.isGameOver = true;
+            showMessage('💀 游戏结束！', '#ff4757', 3000);
+            
+            setTimeout(() => {
+                gameState.lives = 3;
+                gameState.score = 0;
+                gameState.combo = 0;
+                gameState.level = 1;
+                generateGame();
+            }, 3000);
+        }
+
+        function createFireworks() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffd700', '#ff9ff3', '#54a0ff'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'win-firework';
+                    firework.style.left = Math.random() * window.innerWidth + 'px';
+                    firework.style.top = Math.random() * window.innerHeight + 'px';
+                    firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = 100 + Math.random() * 150;
+                    firework.style.setProperty('--fx', Math.cos(angle) * distance + 'px');
+                    firework.style.setProperty('--fy', Math.sin(angle) * distance + 'px');
+                    
+                    document.body.appendChild(firework);
+                    setTimeout(() => firework.remove(), 1000);
+                }, i * 50);
+            }
+        }
+
+        function useRadar() {
+            if (gameState.powerups.radar <= 0 || gameState.isGameOver) return;
+            
+            playSound('powerup');
+            gameState.powerups.radar--;
+            
+            let bombFound = false;
+            gameState.bombIndices.forEach(bombIdx => {
+                const btn = document.querySelector(`[data-index="${bombIdx}"]`);
+                if (btn && !gameState.clickedButtons.has(bombIdx)) {
+                    const rect = btn.getBoundingClientRect();
+                    const wave = document.createElement('div');
+                    wave.className = 'wave-effect';
+                    wave.style.borderColor = '#ff6b6b';
+                    wave.style.left = (rect.left + rect.width / 2) + 'px';
+                    wave.style.top = (rect.top + rect.height / 2) + 'px';
+                    document.body.appendChild(wave);
+                    setTimeout(() => wave.remove(), 1000);
+                    bombFound = true;
+                }
+            });
+            
+            if (!bombFound) {
+                showMessage('📡 附近没有炸弹！', '#4ecdc4');
+            } else {
+                showMessage('📡 检测到炸弹！', '#ff6b6b');
+            }
+            
+            updateUI();
+        }
+
+        function useReveal() {
+            if (gameState.powerups.reveal <= 0 || gameState.isGameOver) return;
+            
+            playSound('powerup');
+            gameState.powerups.reveal--;
+            
+            const size = gridSize();
+            const safeIndices = [];
+            for (let i = 0; i < size; i++) {
+                if (!isBomb(i) && !gameState.clickedButtons.has(i) && !gameState.revealedButtons.has(i)) {
+                    safeIndices.push(i);
+                }
+            }
+            
+            let revealed = 0;
+            for (let i = 0; i < Math.min(3, safeIndices.length); i++) {
+                const idx = safeIndices[Math.floor(Math.random() * safeIndices.length)];
+                if (!gameState.revealedButtons.has(idx)) {
+                    const btn = document.querySelector(`[data-index="${idx}"]`);
+                    if (btn) {
+                        btn.innerHTML = '✅';
+                        btn.classList.add('reveal-anim', 'safe-flash');
+                        btn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        btn.classList.add('bg-green-600', 'border-green-500');
+                        gameState.revealedButtons.add(idx);
+                        revealed++;
+                    }
+                }
+            }
+            
+            showMessage(`👁️ 揭示了 ${revealed} 个安全按钮！`, '#4ecdc4');
+            updateUI();
+            checkWin();
+        }
+
+        function useDefuse() {
+            if (gameState.powerups.defuse <= 0 || gameState.isGameOver) return;
+            
+            playSound('powerup');
+            gameState.powerups.defuse--;
+            
+            gameState.wrongButtons.forEach(idx => {
+                const btn = document.querySelector(`[data-index="${idx}"]`);
+                if (btn && !gameState.clickedButtons.has(idx)) {
+                    btn.innerHTML = '❓';
+                    btn.classList.remove('bg-red-600', 'border-red-500', 'bg-orange-600', 'border-orange-500');
+                    btn.classList.add('bg-gray-700', 'border-gray-600');
+                }
+            });
+            
+            gameState.wrongButtons.clear();
+            showMessage('🔧 错误标记已清除！', '#9b59b6');
+            updateUI();
+        }
+
+        function useShield() {
+            if (gameState.powerups.shield <= 0 || gameState.isGameOver) return;
+            
+            showMessage('🛡️ 护盾已装备！', '#2ecc71');
+            playSound('powerup');
+        }
+
+        function useMystery() {
+            if (gameState.powerups.mystery <= 0 || gameState.isGameOver) return;
+            
+            playSound('powerup');
+            gameState.powerups.mystery--;
+            
+            const effects = ['radar', 'reveal', 'defuse', 'shield', 'score', 'lives'];
+            const effect = effects[Math.floor(Math.random() * effects.length)];
+            
+            switch(effect) {
+                case 'radar':
+                    gameState.powerups.radar += 2;
+                    showMessage('🎁 获得探测器×2！', '#f39c12');
+                    break;
+                case 'reveal':
+                    gameState.powerups.reveal += 2;
+                    showMessage('🎁 获得透视眼×2！', '#3498db');
+                    break;
+                case 'defuse':
+                    gameState.powerups.defuse += 2;
+                    showMessage('🎁 获得拆弹器×2！', '#9b59b6');
+                    break;
+                case 'shield':
+                    gameState.powerups.shield += 2;
+                    showMessage('🎁 获得护盾×2！', '#2ecc71');
+                    break;
+                case 'score':
+                    gameState.score += 500;
+                    showMessage('🎁 获得500分！', '#f1c40f');
+                    break;
+                case 'lives':
+                    gameState.lives = Math.min(5, gameState.lives + 1);
+                    showMessage('🎁 获得额外生命！', '#e74c3c');
+                    break;
+            }
+            
+            updateUI();
+        }
+
+        document.querySelectorAll('.powerup-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const itemType = item.dataset.item;
+                if (gameState.powerups[itemType] <= 0) return;
+                
+                item.classList.add('used');
+                gameState.selectedPowerup = itemType;
+                
+                switch(itemType) {
+                    case 'radar': useRadar(); break;
+                    case 'reveal': useReveal(); break;
+                    case 'defuse': useDefuse(); break;
+                    case 'shield': useShield(); break;
+                    case 'mystery': useMystery(); break;
+                }
+            });
+        });
+
+        function startGame() {
+            gameState.lives = 3;
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.level = 1;
+            generateGame();
+            showMessage('🎮 游戏开始！', '#4ecdc4');
+        }
+
+        function resetPowerups() {
+            gameState.powerups = {
+                radar: 3,
+                reveal: 2,
+                defuse: 2,
+                shield: 1,
+                mystery: 1
+            };
+            document.querySelectorAll('.powerup-item').forEach(el => el.classList.remove('used'));
+            updateUI();
+            showMessage('🔄 道具已重置！', '#3498db');
+        }
+
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            document.getElementById('soundBtn').textContent = 
+                gameState.soundEnabled ? '🔊 音效: 开' : '🔇 音效: 关';
+        }
+
+        generateGame();
+    </script>
+</body>
+</html>
